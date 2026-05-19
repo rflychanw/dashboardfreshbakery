@@ -14,7 +14,7 @@ class LaporanProduksi extends BaseController
         $latestDate = $latestQuery->max_date ?? date('Y-m-d');
 
         // Parameter filter
-        $periode = $this->request->getVar('periode') ?? 'hari';
+        $periode = $this->request->getVar('periode') ?? 'semua';
         $tanggal = $this->request->getVar('tanggal') ?? $latestDate;
         $start_date = $this->request->getVar('start_date') ?? date('Y-m-d', strtotime('-6 days', strtotime($tanggal)));
         $end_date = $this->request->getVar('end_date') ?? $tanggal;
@@ -41,6 +41,7 @@ class LaporanProduksi extends BaseController
             $builder->where("MONTH(produksi.tgl_produksi)", $bulan);
             $builder->where("YEAR(produksi.tgl_produksi)", $tahun);
         }
+        // Jika 'semua', query builder tidak diberi batasan where agar menampilkan semua data
 
         $laporanData = $builder->get()->getResult();
 

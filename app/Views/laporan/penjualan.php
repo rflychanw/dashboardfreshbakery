@@ -3,56 +3,56 @@
 <?= $this->section('content') ?>
 <div class="page-header">
     <div>
-        <h1 class="page-title">Laporan Produksi Roti</h1>
-        <div class="page-breadcrumb">Laporan / Produksi</div>
+        <h1 class="page-title">Laporan Penjualan Produk</h1>
+        <div class="page-breadcrumb">Laporan / Penjualan</div>
     </div>
     <div class="header-actions-group">
-        <button class="btn-secondary" onclick="exportToExcel('Laporan_Produksi')">
+        <button class="btn-secondary" onclick="exportToExcel('Laporan_Penjualan')">
             <i class="fa-solid fa-file-excel"></i> Export Excel
         </button>
     </div>
 </div>
 
-<!-- Ringkasan Statistik -->
+<!-- Ringkasan Statistik Keuangan -->
 <div class="stat-cards" style="margin-bottom: 24px;">
     <div class="stat-card">
-        <div class="stat-icon purple">
-            <i class="fa-solid fa-industry"></i>
+        <div class="stat-icon blue">
+            <i class="fa-solid fa-file-invoice-dollar"></i>
         </div>
         <div class="stat-info">
-            <div class="stat-title">Total SPK Produksi</div>
-            <div class="stat-value"><?= $stats['total'] ?> Batch</div>
+            <div class="stat-title">Total Transaksi</div>
+            <div class="stat-value"><?= $stats['total_transaksi'] ?> Nota</div>
             <div class="stat-trend up" style="color: #6c757d;">Periode terpilih</div>
         </div>
     </div>
     <div class="stat-card">
-        <div class="stat-icon green">
-            <i class="fa-solid fa-circle-check"></i>
+        <div class="stat-icon purple">
+            <i class="fa-solid fa-box"></i>
         </div>
         <div class="stat-info">
-            <div class="stat-title">Produksi Selesai</div>
-            <div class="stat-value"><?= $stats['selesai'] ?> Batch</div>
-            <div class="stat-trend up" style="color: #198754;"><i class="fa-solid fa-check"></i> Sudah diselesaikan</div>
-        </div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-icon blue">
-            <i class="fa-solid fa-spinner"></i>
-        </div>
-        <div class="stat-info">
-            <div class="stat-title">Dalam Proses</div>
-            <div class="stat-value"><?= $stats['proses'] ?> Batch</div>
-            <div class="stat-trend up" style="color: #0d6efd;"><i class="fa-solid fa-rotate"></i> Sedang berjalan</div>
+            <div class="stat-title">Total Produk Terjual</div>
+            <div class="stat-value" style="font-size: 18px;"><?= number_format($stats['total_qty'], 0, ',', '.') ?> Pcs</div>
+            <div class="stat-trend up" style="color: #712cf9;"><i class="fa-solid fa-cart-shopping"></i> Volume penjualan</div>
         </div>
     </div>
     <div class="stat-card">
         <div class="stat-icon pink">
-            <i class="fa-solid fa-bread-slice"></i>
+            <i class="fa-solid fa-tags"></i>
         </div>
         <div class="stat-info">
-            <div class="stat-title">Varian Terpopuler</div>
-            <div class="stat-value" style="font-size: 15px; font-weight: bold; margin-top: 6px; word-break: break-all;"><?= $stats['terpopuler'] ?></div>
-            <div class="stat-trend up" style="color: #d63384;">Sering diproduksi</div>
+            <div class="stat-title">Total Diskon Item</div>
+            <div class="stat-value" style="font-size: 18px; color: #dc3545;">Rp <?= number_format($stats['total_diskon'], 0, ',', '.') ?></div>
+            <div class="stat-trend down" style="color: #d63384;"><i class="fa-solid fa-percent"></i> Potongan harga</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon green">
+            <i class="fa-solid fa-money-bill-trend-up"></i>
+        </div>
+        <div class="stat-info">
+            <div class="stat-title">Total Pendapatan (Subtotal)</div>
+            <div class="stat-value" style="font-size: 18px; color: #198754;">Rp <?= number_format($stats['total_subtotal'], 0, ',', '.') ?></div>
+            <div class="stat-trend up" style="color: #198754; font-weight: bold;"><i class="fa-solid fa-chart-line"></i> Total penjualan roti</div>
         </div>
     </div>
 </div>
@@ -60,7 +60,7 @@
 <!-- Card Filter Laporan -->
 <div class="dashboard-panel" style="margin-bottom: 24px; padding: 20px;">
     <div class="panel-header" style="margin-bottom: 16px;">
-        <h2 class="panel-title"><i class="fa-solid fa-filter"></i> Filter Parameter Laporan</h2>
+        <h2 class="panel-title"><i class="fa-solid fa-filter"></i> Filter Parameter Penjualan</h2>
     </div>
     
     <form method="GET" action="" id="filter-form" style="display: flex; gap: 20px; align-items: flex-end; flex-wrap: wrap;">
@@ -68,7 +68,7 @@
         <div style="flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 8px;">
             <label style="font-size: 13px; font-weight: 500; color: var(--text-secondary);">Pilih Periode Laporan</label>
             <select name="periode" id="periode-select" class="form-control" style="width: 100%; border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 12px; background: var(--bg-color); color: var(--text-primary);">
-                <option value="semua" <?= $periode == 'semua' ? 'selected' : '' ?>>Semua Data Produksi</option>
+                <option value="semua" <?= $periode == 'semua' ? 'selected' : '' ?>>Semua Data Penjualan</option>
                 <option value="hari" <?= $periode == 'hari' ? 'selected' : '' ?>>Harian (Per Hari)</option>
                 <option value="minggu" <?= $periode == 'minggu' ? 'selected' : '' ?>>Mingguan (Per Minggu / Rentang)</option>
                 <option value="bulan" <?= $periode == 'bulan' ? 'selected' : '' ?>>Bulanan (Per Bulan)</option>
@@ -130,7 +130,7 @@
 <div class="dashboard-panel">
     <div class="panel-header" style="margin-bottom: 20px;">
         <h2 class="panel-title">
-            <i class="fa-solid fa-list-check"></i> Detail Hasil Produksi Roti
+            <i class="fa-solid fa-list-check"></i> Detail Riwayat Transaksi Penjualan Produk
             <span style="font-size: 13px; font-weight: normal; color: var(--text-secondary); margin-left: 8px;">
                 (
                 <?php 
@@ -141,7 +141,7 @@
                 } elseif ($periode == 'bulan') {
                     echo "Bulanan: " . $namaBulan[$bulan] . " " . $tahun;
                 } else {
-                    echo "Semua Data Produksi";
+                    echo "Semua Data Penjualan";
                 }
                 ?>
                 )
@@ -150,49 +150,38 @@
     </div>
 
     <div class="table-responsive">
-        <table class="modern-table">
+        <table class="modern-table" style="min-width: 1200px;">
             <thead>
                 <tr>
-                    <th>No. SPK</th>
-                    <th>Tanggal Produksi</th>
-                    <th>Nama Bahan Utama</th>
-                    <th>Nama Roti (Hasil)</th>
-                    <th>Varian</th>
-                    <th>PIC Produksi</th>
-                    <th>Status</th>
+                    <th>No. Faktur</th>
+                    <th>Tanggal Transaksi</th>
+                    <th>Nama Produk</th>
+                    <th>Pelanggan</th>
+                    <th>Karyawan (Kasir)</th>
+                    <th style="text-align: center;">Jumlah (Qty)</th>
+                    <th style="text-align: right;">Diskon Item</th>
+                    <th style="text-align: right;">Sub Total</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (!empty($laporan)): ?>
                     <?php foreach ($laporan as $p): ?>
                         <tr>
-                            <td style="font-weight: 600; color: var(--accent-color);"><?= $p->no_spk ?></td>
-                            <td><?= date('d F Y', strtotime($p->tgl_produksi)) ?></td>
-                            <td><?= $p->nama_bahan ?? '-' ?></td>
-                            <td style="font-weight: 500;"><?= $p->hasil_produk ?></td>
-                            <td><?= $p->varian ?></td>
-                            <td><?= $p->pic ?? '-' ?></td>
-                            <td>
-                                <?php 
-                                    $statusClass = '';
-                                    $statusLower = strtolower(trim($p->status));
-                                    if ($statusLower === 'selesai') {
-                                        $statusClass = 'status-success';
-                                    } elseif ($statusLower === 'proses') {
-                                        $statusClass = 'status-warning';
-                                    } else {
-                                        $statusClass = 'status-pending';
-                                    }
-                                ?>
-                                <span class="status-badge <?= $statusClass ?>"><?= $p->status ?></span>
-                            </td>
+                            <td style="font-weight: 600; color: var(--accent-color);"><?= $p->No_faktur ?></td>
+                            <td><?= date('d F Y H:i', strtotime($p->tgl_teransaksi)) ?></td>
+                            <td style="font-weight: 600; color: var(--text-primary);"><?= $p->nama_produk ?? '-' ?></td>
+                            <td style="font-weight: 500;"><?= $p->nama_lengkap ?? '-' ?></td>
+                            <td><?= $p->nama_staf ?? '-' ?></td>
+                            <td style="text-align: center; font-weight: 500;"><?= $p->qty_beli ?> Pcs</td>
+                            <td style="text-align: right; color: #dc3545;">Rp <?= number_format((float)($p->diskon_item ?? 0), 0, ',', '.') ?></td>
+                            <td style="text-align: right; font-weight: 600; color: #198754;">Rp <?= number_format((float)($p->subtotal ?? 0), 0, ',', '.') ?></td>
                         </tr>
                     <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 32px 0;">
+                        <td colspan="8" style="text-align: center; color: var(--text-secondary); padding: 32px 0;">
                             <i class="fa-solid fa-inbox" style="font-size: 32px; margin-bottom: 12px; display: block; opacity: 0.5;"></i>
-                            Tidak ada data produksi roti ditemukan pada periode ini.
+                            Tidak ada data transaksi penjualan ditemukan pada periode ini.
                         </td>
                     </tr>
                 <?php endif; ?>

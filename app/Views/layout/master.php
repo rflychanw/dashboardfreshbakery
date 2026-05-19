@@ -21,8 +21,7 @@
         <aside class="sidebar">
             <div class="sidebar-header">
                 <div class="logo">
-                    <i class="fa-solid fa-cookie-bite"></i>
-                    <span>FreshBakery</span>
+                    <span>Fresh Bakery</span>
                 </div>
             </div>
             
@@ -52,17 +51,20 @@
                     <li><a href="<?= base_url('produksi') ?>" class="<?= (url_is('produksi') || url_is('produksi/*')) ? 'active' : '' ?>"><i class="fa-solid fa-industry"></i> Produksi</a></li>
                 </ul>
 
-                <p class="menu-label">Detail</p>
+                <!-- <p class="menu-label">Detail</p>
                 <ul class="menu-list">
                     <li><a href="<?= base_url('detail/bahan-baku') ?>" class="<?= (url_is('detail/bahan-baku') || url_is('detail/bahan-baku/*')) ? 'active' : '' ?>"><i class="fa-solid fa-layer-group"></i> Bahan Baku</a></li>
                     <li><a href="<?= base_url('detail/delivery') ?>" class="<?= (url_is('detail/delivery') || url_is('detail/delivery/*')) ? 'active' : '' ?>"><i class="fa-solid fa-truck-ramp-box"></i> Detail Delivery</a></li>
                     <li><a href="<?= base_url('detail/pembelian') ?>" class="<?= (url_is('detail/pembelian') || url_is('detail/pembelian/*')) ? 'active' : '' ?>"><i class="fa-solid fa-receipt"></i> Detail Pembelian</a></li>
                     <li><a href="<?= base_url('detail/penjualan') ?>" class="<?= (url_is('detail/penjualan') || url_is('detail/penjualan/*')) ? 'active' : '' ?>"><i class="fa-solid fa-file-invoice-dollar"></i> Detail Penjualan</a></li>
-                </ul>
+                </ul> -->
 
                 <p class="menu-label">Laporan</p>
                 <ul class="menu-list">
                     <li><a href="<?= base_url('laporan/produksi') ?>" class="<?= (url_is('laporan/produksi') || url_is('laporan/produksi/*')) ? 'active' : '' ?>"><i class="fa-solid fa-chart-line"></i> Laporan Produksi</a></li>
+                    <li><a href="<?= base_url('laporan/penjualan') ?>" class="<?= (url_is('laporan/penjualan') || url_is('laporan/penjualan/*')) ? 'active' : '' ?>"><i class="fa-solid fa-file-invoice-dollar"></i> Laporan Penjualan</a></li>
+                    <li><a href="<?= base_url('laporan/pengiriman') ?>" class="<?= (url_is('laporan/pengiriman') || url_is('laporan/pengiriman/*')) ? 'active' : '' ?>"><i class="fa-solid fa-truck-fast"></i> Laporan Pengiriman</a></li>
+                    <li><a href="<?= base_url('laporan/absen') ?>" class="<?= (url_is('laporan/absen') || url_is('laporan/absen/*')) ? 'active' : '' ?>"><i class="fa-solid fa-user-check"></i> Laporan Absen Karyawan</a></li>
                 </ul>
 
                 <hr style="border: none; border-top: 1px solid var(--border-color); margin: 24px 0;">
@@ -186,6 +188,9 @@
             { name: 'Detail Pembelian', url: '<?= base_url('detail/pembelian') ?>', icon: 'fa-receipt' },
             { name: 'Detail Penjualan', url: '<?= base_url('detail/penjualan') ?>', icon: 'fa-file-invoice-dollar' },
             { name: 'Laporan Produksi', url: '<?= base_url('laporan/produksi') ?>', icon: 'fa-chart-line' },
+            { name: 'Laporan Penjualan', url: '<?= base_url('laporan/penjualan') ?>', icon: 'fa-file-invoice-dollar' },
+            { name: 'Laporan Pengiriman', url: '<?= base_url('laporan/pengiriman') ?>', icon: 'fa-truck-fast' },
+            { name: 'Laporan Absen Karyawan', url: '<?= base_url('laporan/absen') ?>', icon: 'fa-user-check' },
         ];
 
         const searchInput = document.getElementById('menu-search-input');
@@ -233,6 +238,7 @@
         // Global DataTables Initialization
         $(document).ready(function() {
             if ($('.modern-table').length > 0) {
+                // 1. Inisialisasi DataTable terlebih dahulu
                 $('.modern-table').DataTable({
                     "pageLength": 10,
                     "lengthMenu": [[5, 10, 25, 50, -1], [5, 10, 25, 50, "Semua"]],
@@ -249,6 +255,13 @@
                     },
                     "order": [], // Disable initial sort to keep server-side order
                     "responsive": true
+                });
+
+                // 2. Bungkus tabel secara dinamis SETELAH inisialisasi agar controls (pagination & search) tidak ikut tergeser
+                $('.modern-table').each(function() {
+                    if (!$(this).parent().hasClass('table-scroll-wrapper')) {
+                        $(this).wrap('<div class="table-scroll-wrapper" style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 1rem;"></div>');
+                    }
                 });
             }
         });

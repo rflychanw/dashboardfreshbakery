@@ -37,4 +37,7 @@ $routes->group('', ['filter' => 'auth'], function($routes) {
 
     // Laporan Routes
     $routes->get('laporan/produksi', 'LaporanProduksi::index');
+    $routes->get('laporan/penjualan', 'LaporanPenjualan::index');
+    $routes->get('laporan/pengiriman', 'LaporanPengiriman::index');
+    $routes->get('laporan/absen', 'LaporanAbsen::index');
 });

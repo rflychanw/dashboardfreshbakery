@@ -49,6 +49,9 @@ body {
     border-right: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
+    height: 100vh;
+    position: sticky;
+    top: 0;
 }
 
 .sidebar-header {
@@ -76,6 +79,24 @@ body {
     padding: 20px 16px;
     overflow-y: auto;
     flex: 1;
+}
+
+/* Custom Scrollbar for Sidebar Menu */
+.sidebar-menu::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sidebar-menu::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sidebar-menu::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.08);
+    border-radius: 4px;
+}
+
+.sidebar-menu::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.2);
 }
 
 .menu-label {
@@ -574,8 +595,6 @@ body {
 
 .table-responsive {
     width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
 }
 
 /* DataTables Custom Styles */
