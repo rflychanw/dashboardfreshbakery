@@ -65,6 +65,7 @@
                     <li><a href="<?= base_url('laporan/penjualan') ?>" class="<?= (url_is('laporan/penjualan') || url_is('laporan/penjualan/*')) ? 'active' : '' ?>"><i class="fa-solid fa-file-invoice-dollar"></i> Laporan Penjualan</a></li>
                     <li><a href="<?= base_url('laporan/pengiriman') ?>" class="<?= (url_is('laporan/pengiriman') || url_is('laporan/pengiriman/*')) ? 'active' : '' ?>"><i class="fa-solid fa-truck-fast"></i> Laporan Pengiriman</a></li>
                     <li><a href="<?= base_url('laporan/absen') ?>" class="<?= (url_is('laporan/absen') || url_is('laporan/absen/*')) ? 'active' : '' ?>"><i class="fa-solid fa-user-check"></i> Laporan Absen Karyawan</a></li>
+                    <li><a href="<?= base_url('laporan/pembelian') ?>" class="<?= (url_is('laporan/pembelian') || url_is('laporan/pembelian/*')) ? 'active' : '' ?>"><i class="fa-solid fa-cart-shopping"></i> Laporan Pembelian Bahan</a></li>
                 </ul>
 
                 <hr style="border: none; border-top: 1px solid var(--border-color); margin: 24px 0;">
@@ -191,6 +192,7 @@
             { name: 'Laporan Penjualan', url: '<?= base_url('laporan/penjualan') ?>', icon: 'fa-file-invoice-dollar' },
             { name: 'Laporan Pengiriman', url: '<?= base_url('laporan/pengiriman') ?>', icon: 'fa-truck-fast' },
             { name: 'Laporan Absen Karyawan', url: '<?= base_url('laporan/absen') ?>', icon: 'fa-user-check' },
+            { name: 'Laporan Pembelian Bahan', url: '<?= base_url('laporan/pembelian') ?>', icon: 'fa-cart-shopping' },
         ];
 
         const searchInput = document.getElementById('menu-search-input');

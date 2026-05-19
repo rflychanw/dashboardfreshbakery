@@ -21,7 +21,7 @@
         <h2 class="panel-title">Data Penjualan Terbaru</h2>
     </div>
     <div class="table-responsive">
-        <table class="modern-table">
+        <table class="modern-table" style="min-width: 1400px;">
             <thead>
                 <tr>
                     <th>No. Faktur</th>
@@ -29,8 +29,11 @@
                     <th>Karyawan</th>
                     <th>Tanggal Transaksi</th>
                     <th>Pajak PPN</th>
-                    <th>Total Bruto</th>
-                    <th>Total Netto</th>
+                    <th>Nama Produk</th>
+                    <th style="text-align: right;">Harga Satuan</th>
+                    <th style="text-align: center;">Jumlah (Qty)</th>
+                    <th style="text-align: right;">Diskon</th>
+                    <th style="text-align: right;">Sub Total</th>
                     <th>Metode Pembayaran</th>
                     <th>Aksi</th>
                 </tr>
@@ -43,10 +46,17 @@
                         <td><?= $p->nama_lengkap ?></td>
                         <td><?= $p->nama_staf ?></td>
                         <td><?= $p->tgl_teransaksi ?></td>
-                        <td>Rp <?= number_format((float)($p->pajak_ppn ?? 0), 0, ',', '.') ?></td>
-                        <td>Rp <?= number_format((float)($p->total_bruto ?? 0), 0, ',', '.') ?></td>
-                        <td>Rp <?= number_format((float)($p->total_netto ?? 0), 0, ',', '.') ?></td>
-                        <td><?= $p->Metode_pembayaran ?></td>
+                        <td style="color: #6c757d;">Rp <?= number_format((float)($p->pajak_ppn ?? 0), 0, ',', '.') ?></td>
+                        <td style="font-weight: 600; color: var(--text-primary);"><?= $p->nama_produk ?? '-' ?></td>
+                        <td style="text-align: right;">Rp <?= number_format((float)($p->harga_satuan ?? 0), 0, ',', '.') ?></td>
+                        <td style="text-align: center; font-weight: 500;"><?= $p->qty_beli ?? 0 ?> Pcs</td>
+                        <td style="text-align: right; color: #dc3545;">Rp <?= number_format((float)($p->diskon_item ?? 0), 0, ',', '.') ?></td>
+                        <td style="text-align: right; font-weight: 600; color: #198754;">Rp <?= number_format((float)($p->subtotal ?? 0), 0, ',', '.') ?></td>
+                        <td>
+                            <span class="status-badge" style="background: #e9ecef; color: #495057; font-weight: 500;">
+                                <?= $p->Metode_pembayaran ?>
+                            </span>
+                        </td>
                         <td>
                             <button class="panel-action"><i class="fa-solid fa-eye"></i></button>
                             <button class="panel-action" style="color: green;"><i class="fa-solid fa-pen-to-square"></i></button>
@@ -56,7 +66,7 @@
                 <?php endforeach; ?>
             <?php else: ?>
                 <tr>
-                    <td colspan="9" style="text-align: center;">Belum ada data penjualan.</td>
+                    <td colspan="12" style="text-align: center; padding: 24px 0; color: var(--text-secondary);">Belum ada data penjualan.</td>
                 </tr>
             <?php endif; ?>
             </tbody>

@@ -40,4 +40,5 @@ $routes->group('', ['filter' => 'auth'], function($routes) {
     $routes->get('laporan/penjualan', 'LaporanPenjualan::index');
     $routes->get('laporan/pengiriman', 'LaporanPengiriman::index');
     $routes->get('laporan/absen', 'LaporanAbsen::index');
+    $routes->get('laporan/pembelian', 'LaporanPembelian::index');
 });
