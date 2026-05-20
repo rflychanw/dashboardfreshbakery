@@ -19,10 +19,10 @@
 <div class="dashboard-panel">
     <div class="panel-header">
         <h2 class="panel-title">Daftar Karyawan</h2>
-        <div class="search-bar" style="width: 250px;">
+        <!-- <div class="search-bar" style="width: 250px;">
             <i class="fa-solid fa-search"></i>
             <input type="text" placeholder="Cari karyawan...">
-        </div>
+        </div> -->
     </div>
     <table class="modern-table">
         <thead>

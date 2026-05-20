@@ -6,9 +6,12 @@
         <h1 class="page-title">Laporan Pengiriman (Delivery)</h1>
         <div class="page-breadcrumb">Laporan / Pengiriman</div>
     </div>
-    <div class="header-actions-group">
-        <button class="btn-secondary" onclick="exportToExcel('Laporan_Pengiriman')">
+    <div class="header-actions-group" style="display: flex; gap: 10px;">
+        <button class="btn-secondary" onclick="exportToExcel('Laporan_Pengiriman')" style="background: #198754; color: white; border-color: #198754; display: flex; align-items: center; gap: 6px;">
             <i class="fa-solid fa-file-excel"></i> Export Excel
+        </button>
+        <button class="btn-secondary" onclick="exportToPDF('Laporan Pengiriman')" style="background: #dc3545; color: white; border-color: #dc3545; display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-file-pdf"></i> Export PDF
         </button>
     </div>
 </div>

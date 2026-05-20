@@ -168,6 +168,400 @@
             saveAs(new Blob([buffer]), filename + '.xlsx');
         }
 
+        // Dynamic Premium PDF Export (Matches layout template perfectly)
+        function exportToPDF(reportTitle) {
+            const table = document.querySelector('.modern-table');
+            if (!table) {
+                alert('Tidak ada tabel untuk diekspor!');
+                return;
+            }
+            
+            // Find headers, skip Action
+            const headers = [];
+            let actionIdx = -1;
+            table.querySelectorAll('thead th').forEach((th, index) => {
+                const text = th.innerText.trim();
+                if (text.toLowerCase() === 'aksi' || text.toLowerCase() === 'action') {
+                    actionIdx = index;
+                } else {
+                    headers.push(text);
+                }
+            });
+
+            // Find rows
+            const rows = [];
+            table.querySelectorAll('tbody tr').forEach(tr => {
+                // Skip empty row placeholder
+                if (tr.querySelector('td[colspan]')) return;
+                const rowData = [];
+                tr.querySelectorAll('td').forEach((td, index) => {
+                    if (index !== actionIdx) {
+                        rowData.push(td.innerHTML.trim()); // Keep original status badges or stylings
+                    }
+                });
+                if (rowData.length > 0) {
+                    rows.push(rowData);
+                }
+            });
+
+            // Get filter details for the subtitle/period
+            let periodText = 'Semua Periode';
+            const periodSelect = document.getElementById('periode-select');
+            if (periodSelect) {
+                const val = periodSelect.value;
+                if (val === 'hari') {
+                    const tgl = document.querySelector('input[name="tanggal"]')?.value;
+                    periodText = tgl ? formatDateIndo(tgl) : 'Harian';
+                } else if (val === 'minggu') {
+                    const start = document.querySelector('input[name="start_date"]')?.value;
+                    const end = document.querySelector('input[name="end_date"]')?.value;
+                    periodText = (start && end) ? formatDateIndo(start) + ' s/d ' + formatDateIndo(end) : 'Mingguan';
+                } else if (val === 'bulan') {
+                    const bln = document.querySelector('select[name="bulan"]')?.value;
+                    const thn = document.querySelector('select[name="tahun"]')?.value;
+                    periodText = (bln && thn) ? formatMonthYearIndo(bln, thn) : 'Bulanan';
+                }
+            } else {
+                // Fallback: Check if there's a filter parameter in the URL or a dynamic label
+                const activeLabel = document.querySelector('.panel-title span');
+                if (activeLabel) {
+                    periodText = activeLabel.innerText.replace(/[()]/g, '').trim();
+                }
+            }
+
+            // Get main stat details (last stat card usually contains the grand total/revenue)
+            let statTitle = 'Total';
+            let statValue = '0';
+            const statCards = document.querySelectorAll('.stat-card');
+            if (statCards.length > 0) {
+                // Take the last stat card which is usually Total Revenue/Expenditure/etc.
+                const lastCard = statCards[statCards.length - 1];
+                statTitle = lastCard.querySelector('.stat-title')?.innerText.trim() || 'Total';
+                statValue = lastCard.querySelector('.stat-value')?.innerText.trim() || '0';
+            }
+
+            // Build the Print Template
+            const printWindow = window.open('', '_blank', 'width=1100,height=850');
+            
+            let htmlContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Cetak ${reportTitle}</title>
+                <style>
+                    @page {
+                        size: A4 landscape;
+                        margin: 15mm 15mm 15mm 15mm;
+                    }
+                    body {
+                        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                        color: #000;
+                        margin: 0;
+                        padding: 0;
+                        font-size: 11px;
+                        line-height: 1.4;
+                        background: #fff;
+                    }
+                    /* Header template style */
+                    .header-container {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: flex-start;
+                        margin-bottom: 2px;
+                        position: relative;
+                    }
+                    .header-left {
+                        flex: 1;
+                    }
+                    .company-name {
+                        font-size: 22px;
+                        font-weight: 800;
+                        letter-spacing: 0.5px;
+                        margin: 0 0 6px 0;
+                        text-transform: uppercase;
+                        color: #111;
+                    }
+                    .company-address {
+                        font-size: 10px;
+                        color: #444;
+                        margin: 0 0 3px 0;
+                        line-height: 1.3;
+                    }
+                    .company-contact {
+                        font-size: 10px;
+                        color: #444;
+                        margin: 0;
+                    }
+                    .header-right {
+                        text-align: right;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: flex-end;
+                    }
+                    /* Red circles globe bakery logo style matching template */
+                    .company-logo-css {
+                        width: 50px;
+                        height: 50px;
+                        background: #dc3545;
+                        border-radius: 50%;
+                        position: relative;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        color: #fff;
+                        font-weight: 900;
+                        font-size: 18px;
+                        border: 2px solid #000;
+                        box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.2);
+                        letter-spacing: -0.5px;
+                    }
+                    .company-logo-css::after {
+                        content: '';
+                        position: absolute;
+                        top: -5px;
+                        right: -5px;
+                        width: 20px;
+                        height: 20px;
+                        background: rgba(0, 0, 0, 0.15);
+                        border-radius: 50%;
+                    }
+                    .company-web {
+                        font-size: 10px;
+                        font-weight: bold;
+                        color: #000;
+                        margin-top: 6px;
+                        text-decoration: none;
+                    }
+                    .double-line {
+                        border-top: 3px double #000;
+                        margin: 6px 0 20px 0;
+                        width: 100%;
+                    }
+                    
+                    /* Report Title & Subtitle */
+                    .report-title-container {
+                        text-align: center;
+                        margin-bottom: 25px;
+                    }
+                    .report-title {
+                        font-size: 20px;
+                        font-weight: 800;
+                        text-transform: uppercase;
+                        margin: 0 0 6px 0;
+                        letter-spacing: 1px;
+                        color: #000;
+                    }
+                    .report-subtitle {
+                        font-size: 12px;
+                        font-weight: bold;
+                        color: #333;
+                        margin: 0;
+                    }
+
+                    /* Stat Summary box on top-right of table */
+                    .summary-box-wrapper {
+                        display: flex;
+                        justify-content: flex-end;
+                        margin-bottom: 12px;
+                    }
+                    .summary-box {
+                        display: flex;
+                        border: 1.5px solid #000;
+                        font-size: 11px;
+                        height: 28px;
+                        min-width: 250px;
+                    }
+                    .summary-label {
+                        background: #000;
+                        color: #fff;
+                        padding: 0 15px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-weight: bold;
+                        text-transform: uppercase;
+                        flex: 1;
+                    }
+                    .summary-value {
+                        background: #f2f2f2;
+                        color: #000;
+                        padding: 0 20px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: flex-end;
+                        font-weight: bold;
+                        min-width: 120px;
+                        font-size: 12px;
+                    }
+
+                    /* Main Table */
+                    .report-table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin-bottom: 30px;
+                    }
+                    .report-table th, .report-table td {
+                        border: 1px solid #000;
+                        padding: 6px 8px;
+                        vertical-align: middle;
+                    }
+                    .report-table th {
+                        background: #cccccc;
+                        color: #000;
+                        font-weight: bold;
+                        text-align: left;
+                        text-transform: uppercase;
+                        font-size: 10px;
+                    }
+                    .report-table tr:nth-child(even) {
+                        background-color: #f9f9f9;
+                    }
+                    
+                    /* Badges styling for print */
+                    .status-badge {
+                        display: inline-block;
+                        padding: 2px 6px;
+                        border-radius: 3px;
+                        font-size: 9px;
+                        font-weight: bold;
+                        text-transform: uppercase;
+                        border: 1px solid #666;
+                        color: #000 !important;
+                        background: #eee !important;
+                    }
+                    .status-badge.status-success {
+                        background: #e2f0d9 !important;
+                        border-color: #385723;
+                    }
+                    .status-badge.status-warning {
+                        background: #fff2cc !important;
+                        border-color: #7f6000;
+                    }
+                    .status-badge.status-danger {
+                        background: #fce4d6 !important;
+                        border-color: #c65911;
+                    }
+                    
+                    /* Text alignments */
+                    .text-center { text-align: center !important; }
+                    .text-right { text-align: right !important; }
+                    
+                    @media screen {
+                        .print-only-container {
+                            display: none !important;
+                        }
+                        body {
+                            background: #ffffff !important;
+                        }
+                    }
+                    @media print {
+                        .print-only-container {
+                            display: block !important;
+                        }
+                        body {
+                            margin: 0;
+                            background: #ffffff !important;
+                        }
+                        .no-print { display: none; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="print-only-container">
+                    <!-- Header -->
+                    <div class="header-container">
+                        <div class="header-left">
+                            <h1 class="company-name">Fresh Bakery</h1>
+                            <p class="company-address">Jl. Margo Mulyo No. 128, Margahayu | Surabaya | Jawa Timur | Indonesia | 60181</p>
+                            <p class="company-contact">Phone: (031) 555-888-999 | Email: finance@freshbakery.com</p>
+                        </div>
+                        <div class="header-right">
+                            <div class="company-logo-css">FB</div>
+                            <a href="#" class="company-web" onclick="return false;">www.freshbakery.com</a>
+                        </div>
+                    </div>
+                    
+                    <!-- Double line separator -->
+                    <div class="double-line"></div>
+                    
+                    <!-- Title -->
+                    <div class="report-title-container">
+                        <h2 class="report-title">${reportTitle}</h2>
+                        <p class="report-subtitle">${periodText}</p>
+                    </div>
+                    
+                    <!-- Stat box summary -->
+                    <div class="summary-box-wrapper">
+                        <div class="summary-box">
+                            <div class="summary-label">${statTitle}</div>
+                            <div class="summary-value">${statValue.replace('Rp ', '')}</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table -->
+                    <table class="report-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 35px; text-align: center;">No</th>
+                                ${headers.map(h => `<th>${h}</th>`).join('')}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rows.map((row, idx) => `
+                                <tr>
+                                    <td class="text-center">${idx + 1}</td>
+                                    ${row.map((cell, cIdx) => {
+                                        const cleanText = cell.replace(/<[^>]*>/g, '').trim();
+                                        const isStatus = cell.includes('status-badge');
+                                        const isRupiah = cleanText.startsWith('Rp');
+                                        const isNumber = /^[0-9.,]+( Pcs| Orang| Nota| Item| Roti| Paket| Kiriman)?$/.test(cleanText);
+                                        
+                                        let classes = '';
+                                        if (isStatus || cleanText === '-' || (isNumber && cleanText.length < 15)) {
+                                            classes = 'class="text-center"';
+                                        } else if (isRupiah || (cleanText.includes('Rp') && cleanText.length < 25)) {
+                                            classes = 'class="text-right"';
+                                        }
+                                        
+                                        return `<td ${classes}>${cell}</td>`;
+                                    }).join('')}
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <script>
+                    window.onload = function() {
+                        window.print();
+                        setTimeout(function() { window.close(); }, 500);
+                    };
+                <\/script>
+            </body>
+            </html>
+            `;
+            
+            printWindow.document.write(htmlContent);
+            printWindow.document.close();
+        }
+
+        // Sub-helpers for dates
+        function formatDateIndo(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+            return date.toLocaleDateString('id-ID', options);
+        }
+
+        function formatMonthYearIndo(monthNum, yearNum) {
+            const months = {
+                '01': 'Januari', '02': 'Februari', '03': 'Maret', '04': 'April',
+                '05': 'Mei', '06': 'Juni', '07': 'Juli', '08': 'Agustus',
+                '09': 'September', '10': 'Oktober', '11': 'November', '12': 'Desember'
+            };
+            return months[monthNum] + ' ' + yearNum;
+        }
+
         // Menu Search Logic
         const menuItems = [
             { name: 'Dashboard', url: '<?= base_url('/') ?>', icon: 'fa-house' },
@@ -241,7 +635,7 @@
         $(document).ready(function() {
             if ($('.modern-table').length > 0) {
                 // 1. Inisialisasi DataTable terlebih dahulu
-                $('.modern-table').DataTable({
+                var tableInstance = $('.modern-table').DataTable({
                     "pageLength": 10,
                     "lengthMenu": [[5, 10, 25, 50, -1], [5, 10, 25, 50, "Semua"]],
                     "language": {
@@ -264,6 +658,281 @@
                     if (!$(this).parent().hasClass('table-scroll-wrapper')) {
                         $(this).wrap('<div class="table-scroll-wrapper" style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 1rem;"></div>');
                     }
+                });
+
+                // ==========================================
+                // GLOBAL PROTOTYPE CRUD INTERACTIVITY (MOCK)
+                // ==========================================
+                
+                // Append modal HTML if not already exists
+                if ($('#global-crud-modal').length === 0) {
+                    var modalHtml = `
+                    <div class="global-modal-overlay" id="global-crud-modal">
+                        <div class="global-modal-content">
+                            <div class="global-modal-header">
+                                <h3 class="global-modal-title" id="global-modal-title">Form Data</h3>
+                                <button class="global-modal-close" id="global-modal-close">&times;</button>
+                            </div>
+                            <div class="global-modal-body" id="global-modal-body"></div>
+                            <div class="global-modal-footer" id="global-modal-footer"></div>
+                        </div>
+                    </div>
+                    <div class="global-toast" id="global-crud-toast">
+                        <i class="fa-solid fa-circle-check"></i> <span id="global-toast-message">Berhasil!</span>
+                    </div>
+                    `;
+                    $('body').append(modalHtml);
+                }
+
+                // Close modal triggers
+                $('body').on('click', '#global-modal-close, .btn-close-modal', function() {
+                    closeModal();
+                });
+                $('body').on('click', '#global-crud-modal', function(e) {
+                    if (e.target === this) { closeModal(); }
+                });
+
+                function closeModal() {
+                    $('#global-crud-modal').removeClass('active');
+                    setTimeout(() => { $('#global-crud-modal').css('display', 'none'); }, 250);
+                }
+
+                function showToast(message, type = 'success') {
+                    var toast = $('#global-crud-toast');
+                    toast.removeClass('danger');
+                    if (type === 'danger') toast.addClass('danger');
+                    toast.find('#global-toast-message').text(message);
+                    toast.addClass('active');
+                    setTimeout(() => { toast.removeClass('active'); }, 3000);
+                }
+
+                // Helper: Get form inputs html
+                function getInputHtml(header, value = '') {
+                    var lowerHeader = header.toLowerCase();
+                    var id = 'modal-input-' + header.replace(/[^a-zA-Z0-9]/g, '-');
+                    var label = header;
+                    var html = `<div class="form-group-modal"><label for="${id}">${label}</label>`;
+                    
+                    if (lowerHeader.includes('metode') || lowerHeader.includes('pembayaran') || lowerHeader.includes('bayar')) {
+                        html += `<select id="${id}">
+                            <option value="Tunai" ${value == 'Tunai' ? 'selected' : ''}>Tunai</option>
+                            <option value="Transfer Bank" ${value == 'Transfer Bank' ? 'selected' : ''}>Transfer Bank</option>
+                            <option value="Transfer" ${value == 'Transfer' ? 'selected' : ''}>Transfer</option>
+                            <option value="Qris" ${value == 'Qris' ? 'selected' : ''}>Qris</option>
+                            <option value="E-Wallet" ${value == 'E-Wallet' ? 'selected' : ''}>E-Wallet</option>
+                            <option value="COD" ${value == 'COD' ? 'selected' : ''}>COD</option>
+                        </select>`;
+                    } else if (lowerHeader.includes('status')) {
+                        if (window.location.href.includes('absen') || window.location.href.includes('karyawan')) {
+                            html += `<select id="${id}">
+                                <option value="Aktif" ${value == 'Aktif' ? 'selected' : ''}>Aktif</option>
+                                <option value="Cuti" ${value == 'Cuti' ? 'selected' : ''}>Cuti</option>
+                                <option value="Keluar" ${value == 'Keluar' ? 'selected' : ''}>Keluar</option>
+                            </select>`;
+                        } else if (lowerHeader.includes('kirim') || window.location.href.includes('delivery') || window.location.href.includes('pengiriman')) {
+                            html += `<select id="${id}">
+                                <option value="Pending" ${value == 'Pending' ? 'selected' : ''}>Pending</option>
+                                <option value="Proses" ${value == 'Proses' ? 'selected' : ''}>Proses</option>
+                                <option value="Terkirim" ${value == 'Terkirim' ? 'selected' : ''}>Terkirim</option>
+                            </select>`;
+                        } else {
+                            html += `<select id="${id}">
+                                <option value="Aktif" ${value == 'Aktif' ? 'selected' : ''}>Aktif</option>
+                                <option value="Non-Aktif" ${value == 'Non-Aktif' ? 'selected' : ''}>Non-Aktif</option>
+                            </select>`;
+                        }
+                    } else if (lowerHeader.includes('tanggal') || lowerHeader.includes('tgl') || lowerHeader.includes('date')) {
+                        var dateVal = value || new Date().toISOString().split('T')[0];
+                        html += `<input type="date" id="${id}" value="${dateVal}">`;
+                    } else {
+                        html += `<input type="text" id="${id}" value="${value}" placeholder="Masukkan ${label.toLowerCase()}...">`;
+                    }
+                    
+                    html += `</div>`;
+                    return html;
+                }
+
+                // Helper: Format cell when displaying in DataTable
+                function formatCell(header, value) {
+                    var lowerHeader = header.toLowerCase();
+                    var trimVal = value.trim();
+                    if (lowerHeader.includes('status')) {
+                        var badgeClass = 'status-success';
+                        if (trimVal.toLowerCase() === 'cuti' || trimVal.toLowerCase() === 'proses') {
+                            badgeClass = 'status-warning';
+                        } else if (trimVal.toLowerCase() === 'keluar' || trimVal.toLowerCase() === 'pending' || trimVal.toLowerCase() === 'non-aktif') {
+                            badgeClass = 'status-danger';
+                        }
+                        return `<span class="status-badge ${badgeClass}">${value}</span>`;
+                    }
+                    if (lowerHeader.includes('harga') || lowerHeader.includes('biaya') || lowerHeader.includes('subtotal') || lowerHeader.includes('diskon') || lowerHeader.includes('total') || lowerHeader.includes('ongkir') || lowerHeader.includes('netto') || lowerHeader.includes('bruto') || lowerHeader.includes('ppn')) {
+                        if (!value.startsWith('Rp') && value !== '-') {
+                            var num = parseFloat(value.replace(/[^0-9.-]+/g,"")) || 0;
+                            return 'Rp ' + num.toLocaleString('id-ID');
+                        }
+                    }
+                    return value;
+                }
+
+                // Extract action buttons HTML dynamically
+                var actionButtonsHtml = `
+                    <button class="panel-action btn-prototype-view"><i class="fa-solid fa-eye"></i></button>
+                    <button class="panel-action btn-prototype-edit" style="color: green;"><i class="fa-solid fa-pen-to-square"></i></button>
+                    <button class="panel-action btn-prototype-delete" style="color: #dc3545;"><i class="fa-solid fa-trash"></i></button>
+                `;
+
+                // Handle click View (Eye)
+                $('body').on('click', '.modern-table tbody tr td button:has(.fa-eye), .modern-table tbody tr td .btn-prototype-view, .modern-table tbody tr td button.panel-action:nth-child(1)', function(e) {
+                    e.preventDefault();
+                    var tr = $(this).closest('tr');
+                    var data = tableInstance.row(tr).data();
+                    var headers = [];
+                    $('.modern-table th').each(function() { headers.push($(this).text().trim()); });
+                    
+                    var title = 'Detail Data';
+                    if (data && data.length > 0) {
+                        var detailsHtml = `<div style="display: flex; flex-direction: column; gap: 16px;">`;
+                        for (var i = 0; i < headers.length; i++) {
+                            if (headers[i].toLowerCase() === 'aksi' || headers[i].toLowerCase() === 'action') continue;
+                            var rawCell = data[i] || '-';
+                            var cleanCell = $('<div>').html(rawCell).text().trim(); // Strip HTML
+                            detailsHtml += `
+                                <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                                    <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 600;">${headers[i]}</div>
+                                    <div style="font-size: 14px; font-weight: 500; margin-top: 4px; color: var(--text-primary);">${cleanCell}</div>
+                                </div>
+                            `;
+                        }
+                        detailsHtml += `</div>`;
+                        
+                        $('#global-modal-title').html('<i class="fa-solid fa-eye" style="color: var(--accent-color);"></i> ' + title);
+                        $('#global-modal-body').html(detailsHtml);
+                        $('#global-modal-footer').html('<button class="btn-secondary btn-close-modal" style="padding: 8px 16px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer;">Tutup</button>');
+                        $('#global-crud-modal').css('display', 'flex').addClass('active');
+                    }
+                });
+
+                // Handle click Delete (Trash)
+                var rowToDelete = null;
+                $('body').on('click', '.modern-table tbody tr td button:has(.fa-trash), .modern-table tbody tr td .btn-prototype-delete, .modern-table tbody tr td button.panel-action[style*="dc3545"]', function(e) {
+                    e.preventDefault();
+                    rowToDelete = $(this).closest('tr');
+                    var data = tableInstance.row(rowToDelete).data();
+                    var label = (data && data.length > 1) ? $('<div>').html(data[1]).text().trim() : 'data ini';
+
+                    $('#global-modal-title').html('<i class="fa-solid fa-triangle-exclamation" style="color: #dc3545;"></i> Konfirmasi Hapus');
+                    $('#global-modal-body').html('<p style="font-size: 15px; line-height: 1.5; color: var(--text-primary);">Apakah Anda yakin ingin menghapus <strong>' + label + '</strong>? Data ini hanya akan terhapus dari visual halaman ini.</p>');
+                    $('#global-modal-footer').html(`
+                        <button class="btn-secondary btn-close-modal" style="padding: 8px 16px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer;">Batal</button>
+                        <button id="btn-confirm-delete-action" class="btn-primary" style="background: #dc3545; border-color: #dc3545; padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; color: white;">Ya, Hapus</button>
+                    `);
+                    $('#global-crud-modal').css('display', 'flex').addClass('active');
+                });
+
+                $('body').on('click', '#btn-confirm-delete-action', function() {
+                    if (rowToDelete) {
+                        tableInstance.row(rowToDelete).remove().draw();
+                        showToast('Data berhasil dihapus dari visual tabel!', 'success');
+                        closeModal();
+                        rowToDelete = null;
+                    }
+                });
+
+                // Handle click Edit (Pencil)
+                var rowToEdit = null;
+                $('body').on('click', '.modern-table tbody tr td button:has(.fa-pen-to-square), .modern-table tbody tr td .btn-prototype-edit, .modern-table tbody tr td button.panel-action[style*="green"]', function(e) {
+                    e.preventDefault();
+                    rowToEdit = $(this).closest('tr');
+                    var data = tableInstance.row(rowToEdit).data();
+                    var headers = [];
+                    $('.modern-table th').each(function() { headers.push($(this).text().trim()); });
+
+                    var formHtml = `<div style="display: flex; flex-direction: column; gap: 12px;">`;
+                    for (var i = 0; i < headers.length; i++) {
+                        if (headers[i].toLowerCase() === 'aksi' || headers[i].toLowerCase() === 'action') continue;
+                        var rawCell = data[i] || '-';
+                        var cleanCell = $('<div>').html(rawCell).text().trim(); // Strip HTML
+                        formHtml += getInputHtml(headers[i], cleanCell);
+                    }
+                    formHtml += `</div>`;
+
+                    $('#global-modal-title').html('<i class="fa-solid fa-pen-to-square" style="color: #198754;"></i> Edit Data');
+                    $('#global-modal-body').html(formHtml);
+                    $('#global-modal-footer').html(`
+                        <button class="btn-secondary btn-close-modal" style="padding: 8px 16px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer;">Batal</button>
+                        <button id="btn-save-edit-action" class="btn-primary" style="padding: 8px 16px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer;">Simpan Perubahan</button>
+                    `);
+                    $('#global-crud-modal').css('display', 'flex').addClass('active');
+                });
+
+                $('body').on('click', '#btn-save-edit-action', function() {
+                    if (rowToEdit) {
+                        var headers = [];
+                        $('.modern-table th').each(function() { headers.push($(this).text().trim()); });
+                        var newData = [];
+
+                        for (var i = 0; i < headers.length; i++) {
+                            if (headers[i].toLowerCase() === 'aksi' || headers[i].toLowerCase() === 'action') {
+                                newData.push(actionButtonsHtml);
+                            } else {
+                                var id = 'modal-input-' + headers[i].replace(/[^a-zA-Z0-9]/g, '-');
+                                var val = $('#' + id).val() || '';
+                                newData.push(formatCell(headers[i], val));
+                            }
+                        }
+
+                        tableInstance.row(rowToEdit).data(newData).draw(false);
+                        showToast('Data berhasil diperbarui secara visual!', 'success');
+                        closeModal();
+                        rowToEdit = null;
+                    }
+                });
+
+                // Handle click Add New Button (Plus)
+                $('body').on('click', '.btn-primary:has(.fa-plus), button:has(.fa-plus), .btn-primary:contains("Tambah"), .btn-primary:contains("Baru"), .header-actions-group button.btn-primary', function(e) {
+                    if ($(this).attr('onclick') && $(this).attr('onclick').includes('export')) {
+                        return; // Let the export functions run normally
+                    }
+                    if ($('.modern-table').length === 0) return;
+                    e.preventDefault();
+                    
+                    var headers = [];
+                    $('.modern-table th').each(function() { headers.push($(this).text().trim()); });
+
+                    var formHtml = `<div style="display: flex; flex-direction: column; gap: 12px;">`;
+                    for (var i = 0; i < headers.length; i++) {
+                        if (headers[i].toLowerCase() === 'aksi' || headers[i].toLowerCase() === 'action') continue;
+                        formHtml += getInputHtml(headers[i]);
+                    }
+                    formHtml += `</div>`;
+
+                    $('#global-modal-title').html('<i class="fa-solid fa-circle-plus" style="color: var(--accent-color);"></i> Tambah Data Baru');
+                    $('#global-modal-body').html(formHtml);
+                    $('#global-modal-footer').html(`
+                        <button class="btn-secondary btn-close-modal" style="padding: 8px 16px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer;">Batal</button>
+                        <button id="btn-save-add-action" class="btn-primary" style="padding: 8px 16px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer;">Simpan</button>
+                    `);
+                    $('#global-crud-modal').css('display', 'flex').addClass('active');
+                });
+
+                $('body').on('click', '#btn-save-add-action', function() {
+                    var headers = [];
+                    $('.modern-table th').each(function() { headers.push($(this).text().trim()); });
+                    var newData = [];
+
+                    for (var i = 0; i < headers.length; i++) {
+                        if (headers[i].toLowerCase() === 'aksi' || headers[i].toLowerCase() === 'action') {
+                            newData.push(actionButtonsHtml);
+                        } else {
+                            var id = 'modal-input-' + headers[i].replace(/[^a-zA-Z0-9]/g, '-');
+                            var val = $('#' + id).val() || '';
+                            newData.push(formatCell(headers[i], val));
+                        }
+                    }
+
+                    tableInstance.row.add(newData).draw(false);
+                    showToast('Data baru berhasil ditambahkan secara visual!', 'success');
+                    closeModal();
                 });
             }
         });
