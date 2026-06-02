@@ -1,3 +1,8 @@
+<?php
+$db = \Config\Database::connect();
+$globalDeptList = [];
+try { $globalDeptList = array_column($db->table('departemen')->select('nama_dept')->get()->getResultArray(), 'nama_dept'); } catch (\Exception $e) {}
+?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -37,9 +42,9 @@
                     <li><a href="<?= base_url('departemen') ?>" class="<?= (url_is('departemen') || url_is('departemen/*')) ? 'active' : '' ?>"><i class="fa-solid fa-building"></i> Departemen</a></li>
                     <li><a href="<?= base_url('vendor') ?>" class="<?= (url_is('vendor') || url_is('vendor/*')) ? 'active' : '' ?>"><i class="fa-solid fa-store"></i> Vendor</a></li>
                     <li><a href="<?= base_url('produk') ?>" class="<?= (url_is('produk') || url_is('produk/*')) ? 'active' : '' ?>"><i class="fa-solid fa-box"></i> Produk</a></li>
-                    <li><a href="<?= base_url('bahan-baku') ?>" class="<?= (url_is('bahan-baku') || url_is('bahan-baku/*')) ? 'active' : '' ?>"><i class="fa-solid fa-seedling"></i> Bahan Baku</a></li>
+                    <!-- <li><a href="<?= base_url('bahan-baku') ?>" class="<?= (url_is('bahan-baku') || url_is('bahan-baku/*')) ? 'active' : '' ?>"><i class="fa-solid fa-seedling"></i> Bahan Baku</a></li> -->
                     <li><a href="<?= base_url('pelanggan') ?>" class="<?= (url_is('pelanggan') || url_is('pelanggan/*')) ? 'active' : '' ?>"><i class="fa-solid fa-users"></i> Pelanggan</a></li>
-                    <li><a href="<?= base_url('daftar-harga') ?>" class="<?= (url_is('daftar-harga') || url_is('daftar-harga/*')) ? 'active' : '' ?>"><i class="fa-solid fa-tags"></i> Daftar Harga</a></li>
+                    <!-- <li><a href="<?= base_url('daftar-harga') ?>" class="<?= (url_is('daftar-harga') || url_is('daftar-harga/*')) ? 'active' : '' ?>"><i class="fa-solid fa-tags"></i> Daftar Harga</a></li> -->
                 </ul>
 
                 <p class="menu-label">Transaksi</p>
@@ -118,6 +123,10 @@
 
     <!-- Global App Scripts -->
     <script>
+        const globalDropdownOptions = {
+            departemen: <?= json_encode($globalDeptList) ?>
+        };
+
         async function exportToExcel(filename = 'Data_FreshBakery') {
             const table = document.querySelector('.modern-table');
             if (!table) {
@@ -744,6 +753,12 @@
                     } else if (lowerHeader.includes('tanggal') || lowerHeader.includes('tgl') || lowerHeader.includes('date')) {
                         var dateVal = value || new Date().toISOString().split('T')[0];
                         html += `<input type="date" id="${id}" value="${dateVal}">`;
+                    } else if (lowerHeader.includes('departemen') && window.location.href.includes('karyawan')) {
+                        html += `<select id="${id}"><option value="">-- Pilih Departemen --</option>`;
+                        globalDropdownOptions.departemen.forEach(opt => {
+                            html += `<option value="${opt}" ${value == opt ? 'selected' : ''}>${opt}</option>`;
+                        });
+                        html += `</select>`;
                     } else {
                         html += `<input type="text" id="${id}" value="${value}" placeholder="Masukkan ${label.toLowerCase()}...">`;
                     }
@@ -831,10 +846,29 @@
 
                 $('body').on('click', '#btn-confirm-delete-action', function() {
                     if (rowToDelete) {
-                        tableInstance.row(rowToDelete).remove().draw();
-                        showToast('Data berhasil dihapus dari visual tabel!', 'success');
-                        closeModal();
-                        rowToDelete = null;
+                        var data = tableInstance.row(rowToDelete).data();
+                        var firstColVal = $('<div>').html(data[0]).text().trim();
+                        var url = window.location.pathname.replace(/\/$/, '') + '/delete/' + encodeURIComponent(firstColVal);
+                        
+                        $.ajax({
+                            url: url,
+                            type: 'POST',
+                            dataType: 'json',
+                            success: function(response) {
+                                if (response.success) {
+                                    tableInstance.row(rowToDelete).remove().draw();
+                                    showToast(response.message || 'Data berhasil dihapus!', 'success');
+                                    closeModal();
+                                    rowToDelete = null;
+                                    setTimeout(function() { window.location.reload(); }, 800);
+                                } else {
+                                    showToast(response.message || 'Gagal menghapus data!', 'danger');
+                                }
+                            },
+                            error: function() {
+                                showToast('Koneksi atau server bermasalah!', 'danger');
+                            }
+                        });
                     }
                 });
 
@@ -869,22 +903,48 @@
                     if (rowToEdit) {
                         var headers = [];
                         $('.modern-table th').each(function() { headers.push($(this).text().trim()); });
-                        var newData = [];
-
+                        var data = tableInstance.row(rowToEdit).data();
+                        var firstColVal = $('<div>').html(data[0]).text().trim();
+                        var url = window.location.pathname.replace(/\/$/, '') + '/update/' + encodeURIComponent(firstColVal);
+                        
+                        var postData = {};
                         for (var i = 0; i < headers.length; i++) {
-                            if (headers[i].toLowerCase() === 'aksi' || headers[i].toLowerCase() === 'action') {
-                                newData.push(actionButtonsHtml);
-                            } else {
-                                var id = 'modal-input-' + headers[i].replace(/[^a-zA-Z0-9]/g, '-');
-                                var val = $('#' + id).val() || '';
-                                newData.push(formatCell(headers[i], val));
-                            }
+                            if (headers[i].toLowerCase() === 'aksi' || headers[i].toLowerCase() === 'action') continue;
+                            var id = 'modal-input-' + headers[i].replace(/[^a-zA-Z0-9]/g, '-');
+                            var val = $('#' + id).val() || '';
+                            postData[headers[i]] = val;
                         }
 
-                        tableInstance.row(rowToEdit).data(newData).draw(false);
-                        showToast('Data berhasil diperbarui secara visual!', 'success');
-                        closeModal();
-                        rowToEdit = null;
+                        $.ajax({
+                            url: url,
+                            type: 'POST',
+                            data: postData,
+                            dataType: 'json',
+                            success: function(response) {
+                                if (response.success) {
+                                    var newData = [];
+                                    for (var i = 0; i < headers.length; i++) {
+                                        if (headers[i].toLowerCase() === 'aksi' || headers[i].toLowerCase() === 'action') {
+                                            newData.push(actionButtonsHtml);
+                                        } else {
+                                            var id = 'modal-input-' + headers[i].replace(/[^a-zA-Z0-9]/g, '-');
+                                            var val = $('#' + id).val() || '';
+                                            newData.push(formatCell(headers[i], val));
+                                        }
+                                    }
+                                    tableInstance.row(rowToEdit).data(newData).draw(false);
+                                    showToast(response.message || 'Data berhasil disimpan!', 'success');
+                                    closeModal();
+                                    rowToEdit = null;
+                                    setTimeout(function() { window.location.reload(); }, 800);
+                                } else {
+                                    showToast(response.message || 'Gagal memperbarui data!', 'danger');
+                                }
+                            },
+                            error: function() {
+                                showToast('Koneksi atau server bermasalah!', 'danger');
+                            }
+                        });
                     }
                 });
 
@@ -918,21 +978,45 @@
                 $('body').on('click', '#btn-save-add-action', function() {
                     var headers = [];
                     $('.modern-table th').each(function() { headers.push($(this).text().trim()); });
-                    var newData = [];
-
+                    var url = window.location.pathname.replace(/\/$/, '') + '/create';
+                    
+                    var postData = {};
                     for (var i = 0; i < headers.length; i++) {
-                        if (headers[i].toLowerCase() === 'aksi' || headers[i].toLowerCase() === 'action') {
-                            newData.push(actionButtonsHtml);
-                        } else {
-                            var id = 'modal-input-' + headers[i].replace(/[^a-zA-Z0-9]/g, '-');
-                            var val = $('#' + id).val() || '';
-                            newData.push(formatCell(headers[i], val));
-                        }
+                        if (headers[i].toLowerCase() === 'aksi' || headers[i].toLowerCase() === 'action') continue;
+                        var id = 'modal-input-' + headers[i].replace(/[^a-zA-Z0-9]/g, '-');
+                        var val = $('#' + id).val() || '';
+                        postData[headers[i]] = val;
                     }
 
-                    tableInstance.row.add(newData).draw(false);
-                    showToast('Data baru berhasil ditambahkan secara visual!', 'success');
-                    closeModal();
+                    $.ajax({
+                        url: url,
+                        type: 'POST',
+                        data: postData,
+                        dataType: 'json',
+                        success: function(response) {
+                            if (response.success) {
+                                var newData = [];
+                                for (var i = 0; i < headers.length; i++) {
+                                    if (headers[i].toLowerCase() === 'aksi' || headers[i].toLowerCase() === 'action') {
+                                        newData.push(actionButtonsHtml);
+                                    } else {
+                                        var id = 'modal-input-' + headers[i].replace(/[^a-zA-Z0-9]/g, '-');
+                                        var val = $('#' + id).val() || '';
+                                        newData.push(formatCell(headers[i], val));
+                                    }
+                                }
+                                tableInstance.row.add(newData).draw(false);
+                                showToast(response.message || 'Data baru berhasil disimpan!', 'success');
+                                closeModal();
+                                setTimeout(function() { window.location.reload(); }, 800);
+                            } else {
+                                showToast(response.message || 'Gagal menyimpan data baru!', 'danger');
+                            }
+                        },
+                        error: function() {
+                            showToast('Koneksi atau server bermasalah!', 'danger');
+                        }
+                    });
                 });
             }
         });
