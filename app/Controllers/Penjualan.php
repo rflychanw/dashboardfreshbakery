@@ -49,11 +49,9 @@ class Penjualan extends BaseController
         $harga_satuan = $this->cleanNumber($harga_satuan_input);
         $qty = intval(preg_replace('/[^0-9]/', '', $qty_input));
         $diskon_item = $this->cleanNumber($diskon_input);
-        $subtotal = $this->cleanNumber($subtotal_input);
-
-        if ($subtotal == 0) {
-            $subtotal = ($harga_satuan * $qty) - $diskon_item;
-        }
+        
+        // Selalu hitung ulang subtotal untuk memastikan hasil yang benar
+        $subtotal = ($harga_satuan * $qty) - $diskon_item;
 
         // 1. Resolve Pelanggan ID
         $id_pelanggan = 'PL01';
@@ -98,34 +96,45 @@ class Penjualan extends BaseController
             }
         }
 
-        // 5. Insert into penjualan
-        $db->table('penjualan')->insert([
-            'No_faktur' => $no_faktur,
-            'id_pelanggan' => $id_pelanggan,
-            'nip_karyawan' => $nip_karyawan,
-            'id_pembayaran' => $id_pembayaran,
-            'tgl_teransaksi' => $tgl_transaksi,
-            'total_bruto' => $subtotal,
-            'pajak_ppn' => $pajak_ppn,
-            'total_netto' => $subtotal + $pajak_ppn
-        ]);
+        try {
+            // 5. Insert into penjualan
+            $db->table('penjualan')->insert([
+                'No_faktur' => $no_faktur,
+                'id_pelanggan' => $id_pelanggan,
+                'nip_karyawan' => $nip_karyawan,
+                'id_pembayaran' => $id_pembayaran,
+                'tgl_teransaksi' => $tgl_transaksi,
+                'total_bruto' => $subtotal,
+                'pajak_ppn' => $pajak_ppn,
+                'total_netto' => $subtotal + $pajak_ppn
+            ]);
 
-        // 6. Insert into detail_penjualan
-        $db->table('detail_penjualan')->insert([
-            'No_faktur' => $no_faktur,
-            'kode_produk' => $kode_produk,
-            'harga_satuan' => $harga_satuan,
-            'qty_beli' => $qty,
-            'diskon_item' => $diskon_item,
-            'subtotal' => $subtotal
-        ]);
+            // 6. Insert into detail_penjualan
+            $db->table('detail_penjualan')->insert([
+                'No_faktur' => $no_faktur,
+                'kode_produk' => $kode_produk,
+                'harga_satuan' => $harga_satuan,
+                'qty_beli' => $qty,
+                'diskon_item' => $diskon_item,
+                'subtotal' => $subtotal
+            ]);
 
-        return $this->response->setJSON([
-            'success' => true,
-            'message' => 'Transaksi penjualan baru berhasil disimpan!'
-        ]);
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Transaksi penjualan baru berhasil disimpan!'
+            ]);
+        } catch (\Exception $e) {
+            $err = $e->getMessage();
+            if (strpos($err, 'Duplicate') !== false) {
+                $err = 'No Faktur sudah ada di database!';
+            }
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal menyimpan data: ' . $err
+            ]);
+        }
     }
-
+ 
     public function update($id)
     {
         $db = Database::connect();
@@ -147,11 +156,9 @@ class Penjualan extends BaseController
         $harga_satuan = $this->cleanNumber($harga_satuan_input);
         $qty = intval(preg_replace('/[^0-9]/', '', $qty_input));
         $diskon_item = $this->cleanNumber($diskon_input);
-        $subtotal = $this->cleanNumber($subtotal_input);
-
-        if ($subtotal == 0) {
-            $subtotal = ($harga_satuan * $qty) - $diskon_item;
-        }
+        
+        // Selalu hitung ulang subtotal
+        $subtotal = ($harga_satuan * $qty) - $diskon_item;
 
         // 1. Resolve Pelanggan ID
         $id_pelanggan = 'PL01';
@@ -196,43 +203,57 @@ class Penjualan extends BaseController
             }
         }
 
-        // 5. Update penjualan
-        $db->table('penjualan')->where('No_faktur', $id)->update([
-            'id_pelanggan' => $id_pelanggan,
-            'nip_karyawan' => $nip_karyawan,
-            'id_pembayaran' => $id_pembayaran,
-            'tgl_teransaksi' => $tgl_transaksi,
-            'total_bruto' => $subtotal,
-            'pajak_ppn' => $pajak_ppn,
-            'total_netto' => $subtotal + $pajak_ppn
-        ]);
+        try {
+            // 5. Update penjualan
+            $db->table('penjualan')->where('No_faktur', $id)->update([
+                'id_pelanggan' => $id_pelanggan,
+                'nip_karyawan' => $nip_karyawan,
+                'id_pembayaran' => $id_pembayaran,
+                'tgl_teransaksi' => $tgl_transaksi,
+                'total_bruto' => $subtotal,
+                'pajak_ppn' => $pajak_ppn,
+                'total_netto' => $subtotal + $pajak_ppn
+            ]);
 
-        // 6. Update detail_penjualan
-        $db->table('detail_penjualan')->where('No_faktur', $id)->update([
-            'kode_produk' => $kode_produk,
-            'harga_satuan' => $harga_satuan,
-            'qty_beli' => $qty,
-            'diskon_item' => $diskon_item,
-            'subtotal' => $subtotal
-        ]);
+            // 6. Update detail_penjualan
+            $db->table('detail_penjualan')->where('No_faktur', $id)->update([
+                'kode_produk' => $kode_produk,
+                'harga_satuan' => $harga_satuan,
+                'qty_beli' => $qty,
+                'diskon_item' => $diskon_item,
+                'subtotal' => $subtotal
+            ]);
 
-        return $this->response->setJSON([
-            'success' => true,
-            'message' => 'Transaksi penjualan berhasil diperbarui!'
-        ]);
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Transaksi penjualan berhasil diperbarui!'
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal memperbarui data: ' . $e->getMessage()
+            ]);
+        }
     }
 
     public function delete($id)
     {
         $db = Database::connect();
         
-        $db->table('detail_penjualan')->where('No_faktur', $id)->delete();
-        $db->table('penjualan')->where('No_faktur', $id)->delete();
-        
-        return $this->response->setJSON([
-            'success' => true,
-            'message' => 'Transaksi penjualan berhasil dihapus!'
-        ]);
+        try {
+            $db->table('detail_penjualan')->where('No_faktur', $id)->delete();
+            $db->table('penjualan')->where('No_faktur', $id)->delete();
+            
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Transaksi penjualan berhasil dihapus!'
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal menghapus: ' . $e->getMessage()
+            ]);
+        }
     }
 }
 

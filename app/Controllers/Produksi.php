@@ -108,11 +108,25 @@ class Produksi extends BaseController
     public function delete($id)
     {
         $db = Database::connect();
-        $db->table('produksi')->where('no_spk', $id)->delete();
+        
+        try {
+            // Find by no_spk first to get the Id_produksi
+            $produksi = $db->table('produksi')->where('no_spk', $id)->orWhere('Id_produksi', $id)->get()->getRowArray();
+            if ($produksi) {
+                // Clear FK in produk table
+                $db->table('produk')->where('Id_produksi', $produksi['Id_produksi'])->update(['Id_produksi' => null]);
+                $db->table('produksi')->where('Id_produksi', $produksi['Id_produksi'])->delete();
+            }
 
-        return $this->response->setJSON([
-            'success' => true,
-            'message' => 'Data produksi berhasil dihapus!'
-        ]);
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Data produksi berhasil dihapus!'
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal menghapus: ' . $e->getMessage()
+            ]);
+        }
     }
 }

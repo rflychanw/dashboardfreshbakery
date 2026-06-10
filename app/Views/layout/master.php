@@ -1,7 +1,21 @@
 <?php
 $db = \Config\Database::connect();
 $globalDeptList = [];
-try { $globalDeptList = array_column($db->table('departemen')->select('nama_dept')->get()->getResultArray(), 'nama_dept'); } catch (\Exception $e) {}
+$globalVendorList = [];
+$globalPelangganList = [];
+$globalKaryawanList = [];
+$globalProdukList = [];
+$globalProviderList = [];
+$globalBahanList = [];
+try { 
+    $globalDeptList = array_column($db->table('departemen')->select('nama_dept')->get()->getResultArray(), 'nama_dept'); 
+    $globalVendorList = array_column($db->table('vendor')->select('nama_perusahaan')->get()->getResultArray(), 'nama_perusahaan');
+    $globalPelangganList = array_column($db->table('pelanggan')->select('nama_lengkap')->get()->getResultArray(), 'nama_lengkap');
+    $globalKaryawanList = array_column($db->table('karyawan')->select('nama_staf')->get()->getResultArray(), 'nama_staf');
+    $globalProdukList = array_column($db->table('produk')->select('nama_produk')->get()->getResultArray(), 'nama_produk');
+    $globalProviderList = array_column($db->table('provider_pengiriman')->select('nama_provider')->get()->getResultArray(), 'nama_provider');
+    $globalBahanList = array_column($db->table('bahan_baku')->select('nama_bahan')->get()->getResultArray(), 'nama_bahan');
+} catch (\Exception $e) {}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -124,7 +138,13 @@ try { $globalDeptList = array_column($db->table('departemen')->select('nama_dept
     <!-- Global App Scripts -->
     <script>
         const globalDropdownOptions = {
-            departemen: <?= json_encode($globalDeptList) ?>
+            departemen: <?= json_encode($globalDeptList) ?>,
+            vendor: <?= json_encode($globalVendorList) ?>,
+            pelanggan: <?= json_encode($globalPelangganList) ?>,
+            karyawan: <?= json_encode($globalKaryawanList) ?>,
+            produk: <?= json_encode($globalProdukList) ?>,
+            provider: <?= json_encode($globalProviderList) ?>,
+            bahan: <?= json_encode($globalBahanList) ?>
         };
 
         async function exportToExcel(filename = 'Data_FreshBakery') {
@@ -722,7 +742,12 @@ try { $globalDeptList = array_column($db->table('departemen')->select('nama_dept
                     var label = header;
                     var html = `<div class="form-group-modal"><label for="${id}">${label}</label>`;
                     
-                    if (lowerHeader.includes('metode') || lowerHeader.includes('pembayaran') || lowerHeader.includes('bayar')) {
+                    var isReadOnly = (lowerHeader.includes('id') && lowerHeader !== 'provider') || lowerHeader === 'no' || lowerHeader.includes('kode') || lowerHeader === 'nip' || lowerHeader.includes('no faktur') || lowerHeader.includes('sku');
+                    var readOnlyAttr = isReadOnly && value !== '' ? 'readonly style="background-color: var(--background-color); color: var(--text-secondary); cursor: not-allowed; opacity: 0.7;"' : '';
+                    
+                    if (isReadOnly && value !== '') {
+                        html += `<input type="text" id="${id}" value="${value}" ${readOnlyAttr}>`;
+                    } else if (lowerHeader.includes('metode') || lowerHeader.includes('pembayaran') || lowerHeader.includes('bayar')) {
                         html += `<select id="${id}">
                             <option value="Tunai" ${value == 'Tunai' ? 'selected' : ''}>Tunai</option>
                             <option value="Transfer Bank" ${value == 'Transfer Bank' ? 'selected' : ''}>Transfer Bank</option>
@@ -747,18 +772,70 @@ try { $globalDeptList = array_column($db->table('departemen')->select('nama_dept
                         } else {
                             html += `<select id="${id}">
                                 <option value="Aktif" ${value == 'Aktif' ? 'selected' : ''}>Aktif</option>
-                                <option value="Non-Aktif" ${value == 'Non-Aktif' ? 'selected' : ''}>Non-Aktif</option>
+                                <option value="Nonaktif" ${value == 'Non-Aktif' || value == 'Nonaktif' || value == 'nonaktif' ? 'selected' : ''}>Nonaktif</option>
                             </select>`;
                         }
-                    } else if (lowerHeader.includes('tanggal') || lowerHeader.includes('tgl') || lowerHeader.includes('date')) {
+                    } else if (lowerHeader.includes('tanggal') || lowerHeader.includes('tgl') || lowerHeader.includes('date') || lowerHeader.includes('kadaluarsa') || lowerHeader.includes('kadaluwarsa')) {
                         var dateVal = value || new Date().toISOString().split('T')[0];
                         html += `<input type="date" id="${id}" value="${dateVal}">`;
+                    } else if (lowerHeader.includes('jenis layanan') || lowerHeader.includes('layanan')) {
+                        html += `<select id="${id}">
+                            <option value="Reguler" ${value == 'Reguler' ? 'selected' : ''}>Reguler</option>
+                            <option value="Express" ${value == 'Express' ? 'selected' : ''}>Express</option>
+                            <option value="Same Day" ${value == 'Same Day' ? 'selected' : ''}>Same Day</option>
+                            <option value="Kargo" ${value == 'Kargo' ? 'selected' : ''}>Kargo</option>
+                            <option value="Next Day" ${value == 'Next Day' ? 'selected' : ''}>Next Day</option>
+                            <option value="Kilat Khusus" ${value == 'Kilat Khusus' ? 'selected' : ''}>Kilat Khusus</option>
+                            <option value="Internasional" ${value == 'Internasional' ? 'selected' : ''}>Internasional</option>
+                        </select>`;
                     } else if (lowerHeader.includes('departemen') && window.location.href.includes('karyawan')) {
                         html += `<select id="${id}"><option value="">-- Pilih Departemen --</option>`;
                         globalDropdownOptions.departemen.forEach(opt => {
                             html += `<option value="${opt}" ${value == opt ? 'selected' : ''}>${opt}</option>`;
                         });
                         html += `</select>`;
+                    } else if (lowerHeader.includes('vendor') && !window.location.href.includes('vendor')) {
+                        html += `<select id="${id}"><option value="">-- Pilih Vendor --</option>`;
+                        globalDropdownOptions.vendor.forEach(opt => {
+                            html += `<option value="${opt}" ${value == opt ? 'selected' : ''}>${opt}</option>`;
+                        });
+                        html += `</select>`;
+                    } else if (lowerHeader.includes('pelanggan') && !window.location.href.includes('pelanggan')) {
+                        html += `<select id="${id}"><option value="">-- Pilih Pelanggan --</option>`;
+                        globalDropdownOptions.pelanggan.forEach(opt => {
+                            html += `<option value="${opt}" ${value == opt ? 'selected' : ''}>${opt}</option>`;
+                        });
+                        html += `</select>`;
+                    } else if (lowerHeader.includes('karyawan') || lowerHeader.includes('kasir') || lowerHeader.includes('pic')) {
+                        html += `<select id="${id}"><option value="">-- Pilih Karyawan --</option>`;
+                        globalDropdownOptions.karyawan.forEach(opt => {
+                            html += `<option value="${opt}" ${value == opt ? 'selected' : ''}>${opt}</option>`;
+                        });
+                        html += `</select>`;
+                    } else if (lowerHeader.includes('produk') && !window.location.href.includes('produk')) {
+                        html += `<select id="${id}"><option value="">-- Pilih Produk --</option>`;
+                        globalDropdownOptions.produk.forEach(opt => {
+                            html += `<option value="${opt}" ${value == opt ? 'selected' : ''}>${opt}</option>`;
+                        });
+                        html += `</select>`;
+                    } else if (lowerHeader.includes('provider') && !window.location.href.includes('provider')) {
+                        html += `<select id="${id}"><option value="">-- Pilih Provider --</option>`;
+                        globalDropdownOptions.provider.forEach(opt => {
+                            html += `<option value="${opt}" ${value == opt ? 'selected' : ''}>${opt}</option>`;
+                        });
+                        html += `</select>`;
+                    } else if (lowerHeader.includes('bahan')) {
+                        html += `<select id="${id}"><option value="">-- Pilih Bahan --</option>`;
+                        globalDropdownOptions.bahan.forEach(opt => {
+                            html += `<option value="${opt}" ${value == opt ? 'selected' : ''}>${opt}</option>`;
+                        });
+                        html += `</select>`;
+                    } else if (lowerHeader.includes('kategori')) {
+                        html += `<select id="${id}">
+                            <option value="Roti" ${value == 'Roti' ? 'selected' : ''}>Roti</option>
+                            <option value="Donat" ${value == 'Donat' ? 'selected' : ''}>Donat</option>
+                            <option value="Pastry" ${value == 'Pastry' ? 'selected' : ''}>Pastry</option>
+                        </select>`;
                     } else {
                         html += `<input type="text" id="${id}" value="${value}" placeholder="Masukkan ${label.toLowerCase()}...">`;
                     }

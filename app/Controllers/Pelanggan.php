@@ -62,12 +62,22 @@ class Pelanggan extends BaseController
     public function delete($id)
     {
         $db = Database::connect();
-        $db->table('pelanggan')->where('Id_pelanggan', $id)->delete();
         
-        return $this->response->setJSON([
-            'success' => true,
-            'message' => 'Pelanggan berhasil dihapus!'
-        ]);
+        try {
+            $db->table('pembayaran')->where('Id_pelanggan', $id)->update(['Id_pelanggan' => null]);
+            $db->table('penjualan')->where('Id_pelanggan', $id)->update(['Id_pelanggan' => null]);
+            $db->table('pelanggan')->where('Id_pelanggan', $id)->delete();
+            
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Pelanggan berhasil dihapus!'
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal menghapus: ' . $e->getMessage()
+            ]);
+        }
     }
 }
 

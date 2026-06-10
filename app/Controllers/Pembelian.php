@@ -50,18 +50,29 @@ class Pembelian extends BaseController
             }
         }
 
-        $db->table('pembelian_bahan')->insert([
-            'id_pembelian' => $id_pembelian,
-            'tgl_pembelian' => $tgl_pembelian,
-            'id_vendor' => $id_vendor,
-            'total_bayar' => $total_bayar,
-            'metode_bayar' => $metode_bayar
-        ]);
+        try {
+            $db->table('pembelian_bahan')->insert([
+                'id_pembelian' => $id_pembelian,
+                'tgl_pembelian' => $tgl_pembelian,
+                'id_vendor' => $id_vendor,
+                'total_bayar' => $total_bayar,
+                'metode_bayar' => $metode_bayar
+            ]);
 
-        return $this->response->setJSON([
-            'success' => true,
-            'message' => 'Transaksi pembelian baru berhasil ditambahkan!'
-        ]);
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Transaksi pembelian baru berhasil ditambahkan!'
+            ]);
+        } catch (\Exception $e) {
+            $err = $e->getMessage();
+            if (strpos($err, 'Duplicate') !== false) {
+                $err = 'ID atau No PO sudah ada di database!';
+            }
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal menyimpan data: ' . $err
+            ]);
+        }
     }
 
     public function update($id)
@@ -90,28 +101,44 @@ class Pembelian extends BaseController
             }
         }
 
-        $db->table('pembelian_bahan')->where('id_pembelian', $id)->update([
-            'tgl_pembelian' => $tgl_pembelian,
-            'id_vendor' => $id_vendor,
-            'total_bayar' => $total_bayar,
-            'metode_bayar' => $metode_bayar
-        ]);
+        try {
+            $db->table('pembelian_bahan')->where('id_pembelian', $id)->update([
+                'tgl_pembelian' => $tgl_pembelian,
+                'id_vendor' => $id_vendor,
+                'total_bayar' => $total_bayar,
+                'metode_bayar' => $metode_bayar
+            ]);
 
-        return $this->response->setJSON([
-            'success' => true,
-            'message' => 'Data pembelian berhasil diperbarui!'
-        ]);
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Data pembelian berhasil diperbarui!'
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal memperbarui data: ' . $e->getMessage()
+            ]);
+        }
     }
 
     public function delete($id)
     {
         $db = Database::connect();
-        $db->table('pembelian_bahan')->where('id_pembelian', $id)->delete();
         
-        return $this->response->setJSON([
-            'success' => true,
-            'message' => 'Transaksi pembelian berhasil dihapus!'
-        ]);
+        try {
+            $db->table('detail_pembelian_bahan')->where('id_pembelian', $id)->delete();
+            $db->table('pembelian_bahan')->where('id_pembelian', $id)->delete();
+            
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Transaksi pembelian berhasil dihapus!'
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal menghapus: ' . $e->getMessage()
+            ]);
+        }
     }
 }
 

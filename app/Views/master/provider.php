@@ -53,14 +53,14 @@
                         ?>
                         <td><span class="status-badge <?= $statusClass ?>"><?= $pr->status_aktif ?></span></td>
                         <td>
-                            <button class="panel-action"><i class="fa-solid fa-pen-to-square"></i></button>
-                            <button class="panel-action" style="color: #dc3545;"><i class="fa-solid fa-trash"></i></button>
+                            <button class="panel-action btn-prototype-edit" style="color: green;"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button class="panel-action btn-prototype-delete" style="color: #dc3545;"><i class="fa-solid fa-trash"></i></button>
                         </td>
                     </tr>
                 <?php endforeach; ?>
             <?php else: ?>
                 <tr>
-                    <td colspan="5" style="text-align: center;">Belum ada data pelanggan.</td>
+                    <td colspan="7" style="text-align: center;">Belum ada data provider pengiriman.</td>
                 </tr>
             <?php endif; ?>
         </tbody>

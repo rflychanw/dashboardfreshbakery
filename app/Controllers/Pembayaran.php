@@ -124,11 +124,20 @@ class Pembayaran extends BaseController
     public function delete($id)
     {
         $db = Database::connect();
-        $db->table('pembayaran')->where('Id_pembayaran', $id)->delete();
 
-        return $this->response->setJSON([
-            'success' => true,
-            'message' => 'Pembayaran berhasil dihapus!'
-        ]);
+        try {
+            $db->table('penjualan')->where('Id_pembayaran', $id)->update(['Id_pembayaran' => null]);
+            $db->table('pembayaran')->where('Id_pembayaran', $id)->delete();
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Pembayaran berhasil dihapus!'
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal menghapus: ' . $e->getMessage()
+            ]);
+        }
     }
 }

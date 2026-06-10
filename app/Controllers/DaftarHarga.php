@@ -71,12 +71,22 @@ class DaftarHarga extends BaseController
     public function delete($id)
     {
         $db = Database::connect();
-        $db->table('daftar_harga')->where('Id_detail_harga', $id)->delete();
         
-        return $this->response->setJSON([
-            'success' => true,
-            'message' => 'Daftar harga berhasil dihapus!'
-        ]);
+        try {
+            $db->table('produk')->where('Id_detail_harga', $id)->update(['Id_detail_harga' => null]);
+            $db->table('detail_penjualan')->where('Id_detail_harga', $id)->update(['Id_detail_harga' => null]);
+            $db->table('daftar_harga')->where('Id_detail_harga', $id)->delete();
+            
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Daftar harga berhasil dihapus!'
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal menghapus: ' . $e->getMessage()
+            ]);
+        }
     }
 }
 

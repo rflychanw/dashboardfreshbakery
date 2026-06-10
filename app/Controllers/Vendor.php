@@ -68,12 +68,24 @@ class Vendor extends BaseController
     public function delete($id)
     {
         $db = Database::connect();
-        $db->table('vendor')->where('id_vendor', $id)->delete();
         
-        return $this->response->setJSON([
-            'success' => true,
-            'message' => 'Vendor berhasil dihapus!'
-        ]);
+        try {
+            // Clear FK references
+            $db->table('bahan_baku')->where('id_vendor', $id)->update(['id_vendor' => null]);
+            $db->table('pembelian_bahan')->where('id_vendor', $id)->update(['id_vendor' => null]);
+            
+            $db->table('vendor')->where('id_vendor', $id)->delete();
+            
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Vendor berhasil dihapus!'
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal menghapus: ' . $e->getMessage()
+            ]);
+        }
     }
 }
 

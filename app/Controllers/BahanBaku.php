@@ -116,12 +116,21 @@ class BahanBaku extends BaseController
     public function delete($id)
     {
         $db = Database::connect();
-        $db->table('bahan_baku')->where('id_bahan', $id)->delete();
         
-        return $this->response->setJSON([
-            'success' => true,
-            'message' => 'Bahan baku berhasil dihapus!'
-        ]);
+        try {
+            $db->table('produksi')->where('id_bahan', $id)->update(['id_bahan' => null]);
+            $db->table('bahan_baku')->where('id_bahan', $id)->delete();
+            
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Bahan baku berhasil dihapus!'
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal menghapus: ' . $e->getMessage()
+            ]);
+        }
     }
 }
 

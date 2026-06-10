@@ -66,12 +66,21 @@ class Provider extends BaseController
     public function delete($id)
     {
         $db = Database::connect();
-        $db->table('provider_pengiriman')->where('id_provider', $id)->delete();
         
-        return $this->response->setJSON([
-            'success' => true,
-            'message' => 'Provider berhasil dihapus!'
-        ]);
+        try {
+            $db->table('delivery')->where('id_provider', $id)->update(['id_provider' => null]);
+            $db->table('provider_pengiriman')->where('id_provider', $id)->delete();
+            
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Provider berhasil dihapus!'
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal menghapus: ' . $e->getMessage()
+            ]);
+        }
     }
 }
 

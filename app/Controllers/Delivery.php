@@ -142,15 +142,22 @@ class Delivery extends BaseController
     {
         $db = Database::connect();
 
-        $delivery = $db->table('delivery')->where('kode_pengiriman', $id)->orWhere('id_pengiriman', $id)->get()->getRowArray();
-        if ($delivery) {
-            $db->table('delivery')->where('id_pengiriman', $delivery['id_pengiriman'])->delete();
-            $db->table('detail_delivery')->where('Id_detail_kirim', $delivery['Id_detail_kirim'])->delete();
-        }
+        try {
+            $delivery = $db->table('delivery')->where('kode_pengiriman', $id)->orWhere('id_pengiriman', $id)->get()->getRowArray();
+            if ($delivery) {
+                $db->table('delivery')->where('id_pengiriman', $delivery['id_pengiriman'])->delete();
+                $db->table('detail_delivery')->where('Id_detail_kirim', $delivery['Id_detail_kirim'])->delete();
+            }
 
-        return $this->response->setJSON([
-            'success' => true,
-            'message' => 'Pengiriman berhasil dihapus!'
-        ]);
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Pengiriman berhasil dihapus!'
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal menghapus: ' . $e->getMessage()
+            ]);
+        }
     }
 }

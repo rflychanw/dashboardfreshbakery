@@ -44,20 +44,31 @@ class Karyawan extends BaseController
             }
         }
 
-        $db->table('karyawan')->insert([
-            'nip_karyawan' => $nip,
-            'id_dept' => $id_dept,
-            'nama_staf' => $nama_staf,
-            'jabatan' => $jabatan,
-            'email_kantor' => $email_kantor,
-            'tgl_masuk' => $tgl_masuk,
-            'status_staf' => $status_staf
-        ]);
+        try {
+            $db->table('karyawan')->insert([
+                'nip_karyawan' => $nip,
+                'id_dept' => $id_dept,
+                'nama_staf' => $nama_staf,
+                'jabatan' => $jabatan,
+                'email_kantor' => $email_kantor,
+                'tgl_masuk' => $tgl_masuk,
+                'status_staf' => $status_staf
+            ]);
 
-        return $this->response->setJSON([
-            'success' => true,
-            'message' => 'Karyawan baru berhasil ditambahkan!'
-        ]);
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Karyawan baru berhasil ditambahkan!'
+            ]);
+        } catch (\Exception $e) {
+            $err = $e->getMessage();
+            if (strpos($err, 'Duplicate') !== false) {
+                $err = 'NIP Karyawan sudah ada di database!';
+            }
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal menyimpan data: ' . $err
+            ]);
+        }
     }
 
     public function update($id)
@@ -85,30 +96,52 @@ class Karyawan extends BaseController
             }
         }
 
-        $db->table('karyawan')->where('nip_karyawan', $id)->update([
-            'id_dept' => $id_dept,
-            'nama_staf' => $nama_staf,
-            'jabatan' => $jabatan,
-            'email_kantor' => $email_kantor,
-            'tgl_masuk' => $tgl_masuk,
-            'status_staf' => $status_staf
-        ]);
+        try {
+            file_put_contents(WRITEPATH . 'logs/update_debug.log', print_r($_POST, true));
+            file_put_contents(WRITEPATH . 'logs/update_debug.log', "ID = " . $id . "\n", FILE_APPEND);
+            
+            $db->table('karyawan')->where('nip_karyawan', $id)->update([
+                'id_dept' => $id_dept,
+                'nama_staf' => $nama_staf,
+                'jabatan' => $jabatan,
+                'email_kantor' => $email_kantor,
+                'tgl_masuk' => $tgl_masuk,
+                'status_staf' => $status_staf
+            ]);
 
-        return $this->response->setJSON([
-            'success' => true,
-            'message' => 'Data karyawan berhasil diperbarui!'
-        ]);
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Data karyawan berhasil diperbarui!'
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal memperbarui data: ' . $e->getMessage()
+            ]);
+        }
     }
 
     public function delete($id)
     {
         $db = Database::connect();
-        $db->table('karyawan')->where('nip_karyawan', $id)->delete();
         
-        return $this->response->setJSON([
-            'success' => true,
-            'message' => 'Karyawan berhasil dihapus!'
-        ]);
+        try {
+            $db->table('delivery')->where('nip_karyawan', $id)->update(['nip_karyawan' => null]);
+            $db->table('pembayaran')->where('nip_karyawan', $id)->update(['nip_karyawan' => null]);
+            $db->table('penjualan')->where('nip_karyawan', $id)->update(['nip_karyawan' => null]);
+            $db->table('produksi')->where('nip_karyawan', $id)->update(['nip_karyawan' => null]);
+            $db->table('karyawan')->where('nip_karyawan', $id)->delete();
+            
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Karyawan berhasil dihapus!'
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal menghapus: ' . $e->getMessage()
+            ]);
+        }
     }
 }
 

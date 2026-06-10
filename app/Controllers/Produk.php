@@ -41,29 +41,48 @@ class Produk extends BaseController
         $stok = intval($this->request->getPost('Stok') ?? 0);
         $masa_kadaluarsa = $this->request->getPost('Masa_Kadaluarsa') ?? $this->request->getPost('Masa Kadaluarsa') ?? date('Y-m-d', strtotime('+3 days'));
 
-        // 1. Insert first to get a daftar_harga record
-        $db->table('daftar_harga')->insert([
-            'kode_produk' => $kode_produk,
-            'Harga_asli' => $harga_jual,
-            'Harga_diskon' => $harga_diskon
-        ]);
-        $id_detail_harga = $db->insertID();
+        try {
+            $db->transException(true)->transStart();
 
-        // 2. Insert into produk
-        $db->table('produk')->insert([
-            'kode_produk' => $kode_produk,
-            'Id_detail_harga' => $id_detail_harga,
-            'nama_produk' => $nama_produk,
-            'kategori_roti' => $kategori_roti,
-            'stok' => $stok,
-            'harga_jual' => $harga_jual,
-            'masa_kadaluarsa' => $masa_kadaluarsa
-        ]);
+            // 1. Insert into produk first (so daftar_harga's FK constraint is satisfied)
+            $db->table('produk')->insert([
+                'kode_produk' => $kode_produk,
+                'nama_produk' => $nama_produk,
+                'kategori_roti' => $kategori_roti,
+                'stok' => $stok,
+                'harga_jual' => $harga_jual,
+                'masa_kadaluarsa' => $masa_kadaluarsa
+            ]);
 
-        return $this->response->setJSON([
-            'success' => true,
-            'message' => 'Produk baru berhasil ditambahkan!'
-        ]);
+            // 2. Insert into daftar_harga
+            $db->table('daftar_harga')->insert([
+                'kode_produk' => $kode_produk,
+                'Harga_asli' => $harga_jual,
+                'Harga_diskon' => $harga_diskon
+            ]);
+            $id_detail_harga = $db->insertID();
+
+            // 3. Update produk with the Id_detail_harga
+            $db->table('produk')->where('kode_produk', $kode_produk)->update([
+                'Id_detail_harga' => $id_detail_harga
+            ]);
+
+            $db->transComplete();
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Produk baru berhasil ditambahkan!'
+            ]);
+        } catch (\Exception $e) {
+            $err = $e->getMessage();
+            if (strpos($err, 'Duplicate') !== false) {
+                $err = 'SKU atau Kode Produk sudah ada di database!';
+            }
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal menyimpan data: ' . $err
+            ]);
+        }
     }
 
     public function update($id)
@@ -81,54 +100,74 @@ class Produk extends BaseController
         $stok = intval($this->request->getPost('Stok') ?? 0);
         $masa_kadaluarsa = $this->request->getPost('Masa_Kadaluarsa') ?? $this->request->getPost('Masa Kadaluarsa') ?? date('Y-m-d', strtotime('+3 days'));
 
-        // Get existing product to update its daftar_harga
-        $prod = $db->table('produk')->where('kode_produk', $id)->get()->getRowArray();
-        if ($prod && $prod['Id_detail_harga']) {
-            $db->table('daftar_harga')->where('Id_detail_harga', $prod['Id_detail_harga'])->update([
-                'Harga_asli' => $harga_jual,
-                'Harga_diskon' => $harga_diskon
+        try {
+            // Get existing product to update its daftar_harga
+            $prod = $db->table('produk')->where('kode_produk', $id)->get()->getRowArray();
+            if ($prod && $prod['Id_detail_harga']) {
+                $db->table('daftar_harga')->where('Id_detail_harga', $prod['Id_detail_harga'])->update([
+                    'Harga_asli' => $harga_jual,
+                    'Harga_diskon' => $harga_diskon
+                ]);
+            } else {
+                // Create a new price record if not exists
+                $db->table('daftar_harga')->insert([
+                    'kode_produk' => $id,
+                    'Harga_asli' => $harga_jual,
+                    'Harga_diskon' => $harga_diskon
+                ]);
+                $id_detail_harga = $db->insertID();
+                $db->table('produk')->where('kode_produk', $id)->update(['Id_detail_harga' => $id_detail_harga]);
+            }
+
+            $db->table('produk')->where('kode_produk', $id)->update([
+                'nama_produk' => $nama_produk,
+                'kategori_roti' => $kategori_roti,
+                'stok' => $stok,
+                'harga_jual' => $harga_jual,
+                'masa_kadaluarsa' => $masa_kadaluarsa
             ]);
-        } else {
-            // Create a new price record if not exists
-            $db->table('daftar_harga')->insert([
-                'kode_produk' => $id,
-                'Harga_asli' => $harga_jual,
-                'Harga_diskon' => $harga_diskon
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Data produk berhasil diperbarui!'
             ]);
-            $id_detail_harga = $db->insertID();
-            $db->table('produk')->where('kode_produk', $id)->update(['Id_detail_harga' => $id_detail_harga]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal memperbarui data: ' . $e->getMessage()
+            ]);
         }
-
-        $db->table('produk')->where('kode_produk', $id)->update([
-            'nama_produk' => $nama_produk,
-            'kategori_roti' => $kategori_roti,
-            'stok' => $stok,
-            'harga_jual' => $harga_jual,
-            'masa_kadaluarsa' => $masa_kadaluarsa
-        ]);
-
-        return $this->response->setJSON([
-            'success' => true,
-            'message' => 'Data produk berhasil diperbarui!'
-        ]);
     }
 
     public function delete($id)
     {
         $db = Database::connect();
         
-        // Remove related prices first to keep database clean
-        $prod = $db->table('produk')->where('kode_produk', $id)->get()->getRowArray();
-        if ($prod && $prod['Id_detail_harga']) {
-            $db->table('daftar_harga')->where('Id_detail_harga', $prod['Id_detail_harga'])->delete();
+        try {
+            // Remove FK references in order
+            $db->table('detail_penjualan')->where('kode_produk', $id)->delete();
+            $db->table('delivery')->where('kode_produk', $id)->delete();
+            
+            // BREAK THE CIRCULAR DEPENDENCY:
+            // 1. Clear Id_detail_harga in produk so we can safely delete from daftar_harga
+            $db->table('produk')->where('kode_produk', $id)->update(['Id_detail_harga' => null]);
+            
+            // 2. Safely delete from daftar_harga
+            $db->table('daftar_harga')->where('kode_produk', $id)->delete();
+            
+            // 3. Finally delete the produk itself
+            $db->table('produk')->where('kode_produk', $id)->delete();
+            
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Produk berhasil dihapus!'
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal menghapus data: ' . $e->getMessage()
+            ]);
         }
-        
-        $db->table('produk')->where('kode_produk', $id)->delete();
-        
-        return $this->response->setJSON([
-            'success' => true,
-            'message' => 'Produk berhasil dihapus!'
-        ]);
     }
 }
 

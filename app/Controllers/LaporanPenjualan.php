@@ -26,7 +26,7 @@ class LaporanPenjualan extends BaseController
         
         $bulan = $this->request->getVar('bulan') ?? $defaultBulan;
         $tahun = $this->request->getVar('tahun') ?? $defaultTahun;
-
+ 
         // Query Builder untuk Laporan Penjualan (Detail Penjualan Item)
         $builder = $db->table('detail_penjualan')
             ->select('detail_penjualan.*, penjualan.tgl_teransaksi, produk.nama_produk, pelanggan.nama_lengkap, karyawan.nama_staf, pembayaran.Metode_pembayaran')

@@ -35,7 +35,7 @@
             <tr>
                 <td><?= $d->id_dept ?></td>
                 <td><?= $d->nama_dept ?></td>
-                <td><?= $d->budget_tahunan ?></td>
+                <td>Rp <?= number_format($d->budget_tahunan, 0, ',', '.') ?></td>
                 <td>
                     <button class="panel-action"><i class="fa-solid fa-pen-to-square"></i></button>
                     <button class="panel-action" style="color: #dc3545;"><i class="fa-solid fa-trash"></i></button>
